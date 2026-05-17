@@ -204,7 +204,7 @@ jobs:
         include:
           - target: linux
           - target: html5
-          # - target: android
+          - target: android
     defaults:
       run:
         shell: bash
@@ -265,7 +265,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.target }}
-          path: export/release/${{matrix.target}}/bin/
+          path: |
+            export/release/${{ matrix.target }}/bin/
+            export/release/android/bin/app/build/outputs/apk/release/*.apk
       - name: Upload build artifacts
         uses: ./.github/actions/upload-itch
         with:
