@@ -15,7 +15,7 @@ on:
 jobs:
 
   build-game-on-linux:
-    runs-on: ubuntu-latest  # Usamos la máquina virtual limpia de GitHub
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -25,18 +25,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive' # Trae los submódulos de FNF
+          submodules: 'recursive'
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17' # Requerido para compilar las herramientas modernas de Android
+          java-version: '17'
 
       - name: Setup Lix/Haxe Environment
         uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: 4.3.4 # Instalación nativa y limpia de la versión exacta
+          haxe-version: 4.3.4
 
       - name: Install System Dependencies
         run: |
@@ -51,15 +51,17 @@ jobs:
       - name: Install HMM and dependencies
         run: |
           haxelib install hmm --quiet
-          # Forzamos la instalación de hxcpp público para evitar el bloqueo del repositorio privado de FNF
           haxelib install hxcpp --quiet
+          
+          # Borramos la dependencia conflictiva de hxcpp del archivo JSON
+          sed -i '/"hxcpp"/d' hmm.json || true
+          sed -i '/"name": "hxcpp"/,/}/d' hmm.json || true
+          
           haxelib run hmm install -q
-          # Compilar herramientas internas de hxcpp para C++ (si falla, el || true lo ignora y sigue)
           cd .haxelib/hxcpp/git/tools/hxcpp && haxe compile.hxml || true
 
       - name: Configure Lime for Android
         run: |
-          # Le decimos a Lime dónde están las herramientas de Android que ya vienen instaladas en el servidor de GitHub
           haxelib run lime config ANDROID_SDK $ANDROID_HOME
           haxelib run lime config ANDROID_NDK $ANDROID_NDK_LATEST_HOME
           haxelib run lime config JAVA_HOME $JAVA_HOME
@@ -75,3 +77,4 @@ jobs:
         with:
           name: build-android
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          
