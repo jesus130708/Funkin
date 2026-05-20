@@ -51,8 +51,6 @@ jobs:
       - name: Install HMM and dependencies
         run: |
           haxelib install hmm --quiet
-          
-          # Instalamos las versiones oficiales estables globales
           haxelib install lime 8.2.2 --quiet
           haxelib install hxcpp --quiet
           haxelib install jsonpatch 1.1.0 --quiet
@@ -72,18 +70,18 @@ jobs:
               json.dump(data, f, indent=2)
           "
           
-          # 2. Cirugía quirúrgica en project.hxp: neutralizamos las líneas problemáticas de raíz sin alterar la estructura
+          # 2. Reemplazo seguro: Neutralizamos las variables dándoles valores falsos válidos sin tocar las llaves
           python3 -c "
           with open('project.hxp', 'r') as f:
-              lines = f.readlines()
+              code = f.read()
+          
+          # En lugar de borrar, hacemos que apunten a cosas que no rompan la compilación
+          code = code.replace('.deliveryPackName', ' /* .deliveryPackName */ ')
+          code = code.replace('adaptiveIcon', 'icon')
+          code = code.replace('.xmlChildren', ' != null ? [] : []') 
           
           with open('project.hxp', 'w') as f:
-              for line in lines:
-                  # Si la línea contiene los desencadenantes del error, la neutralizamos por completo
-                  if 'deliveryPackName' in line or 'adaptiveIcon' in line or 'xmlChildren' in line:
-                      f.write('// Línea removida para compatibilidad con Lime oficial\n')
-                  else:
-                      f.write(line)
+              f.write(code)
           "
           
           haxelib run hmm install -q
@@ -105,4 +103,3 @@ jobs:
         with:
           name: build-android
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
-          
