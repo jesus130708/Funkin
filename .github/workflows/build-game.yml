@@ -53,9 +53,15 @@ jobs:
           haxelib install hmm --quiet
           haxelib install hxcpp --quiet
           
-          # Borramos la dependencia conflictiva de hxcpp del archivo JSON
-          sed -i '/"hxcpp"/d' hmm.json || true
-          sed -i '/"name": "hxcpp"/,/}/d' hmm.json || true
+          python3 -c "
+          import json
+          with open('hmm.json', 'r') as f:
+              data = json.load(f)
+          if 'dependencies' in data:
+              data['dependencies'] = [d for d in data['dependencies'] if d.get('name') != 'hxcpp']
+          with open('hmm.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          "
           
           haxelib run hmm install -q
           cd .haxelib/hxcpp/git/tools/hxcpp && haxe compile.hxml || true
