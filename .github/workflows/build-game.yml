@@ -10,29 +10,12 @@ on:
       save-artifact:
         type: boolean
         description: Save the build artifact to Github Actions
-        default: true # Cambiado a true por defecto para que descargues el APK directo desde GitHub
+        default: true
 
 jobs:
 
-  gather-tags:
-    runs-on: ubuntu-latest # Cambiado a servidor público de Linux
-    outputs:
-      primary: ${{ steps.build-tags.outputs.primary }}
-    steps:
-      - name: Gather build tags
-        uses: actions/github-script@v7
-        id: build-tags
-        with:
-          script: |
-            const ref_path = context.ref.split("/").slice(2)
-            const ref_tag = ref_path.join("-")
-            core.setOutput("primary", ref_tag)
-
-  build-game-in-container:
-    needs: [gather-tags]
-    runs-on: ubuntu-latest # Cambiado a servidor público de Linux
-    # Usamos una imagen de Docker pública de Haxe/Ubuntu estable para evitar el registro privado de FNF
-    container: haxe:4.3.4-ubuntu
+  build-game-on-linux:
+    runs-on: ubuntu-latest  # Usamos la máquina virtual limpia de GitHub
     defaults:
       run:
         shell: bash
@@ -42,11 +25,17 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive' # Trae todos los submódulos necesarios del juego
+          submodules: 'recursive' # Trae los submódulos de FNF
+
+      - name: Setup Lix/Haxe Environment
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.4 # Instalación nativa y limpia de la versión exacta
 
       - name: Install System Dependencies
         run: |
-          apt-get update && apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libx11-dev libxext-dev libxinerama-dev libxrandr-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libx11-dev libxext-dev libxinerama-dev libxrandr-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
       - name: Config haxelib
         run: |
@@ -57,7 +46,7 @@ jobs:
         run: |
           haxelib install hmm --quiet
           haxelib run hmm install -q
-          # Configurar hxcpp para compilación en C++
+          # Compilar herramientas internas de hxcpp para C++
           cd .haxelib/hxcpp/git/tools/hxcpp && haxe compile.hxml
 
       - name: Build game (Android)
