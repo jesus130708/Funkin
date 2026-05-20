@@ -52,30 +52,37 @@ jobs:
         run: |
           haxelib install hmm --quiet
           
-          # 1. Instalamos la versión oficial estable y moderna de Lime desde Haxelib (trae los binarios .ndll ya listos)
+          # Instalamos las versiones oficiales estables de Lime y HXCPP
           haxelib install lime 8.2.2 --quiet
           haxelib install hxcpp --quiet
           
-          # 2. Usamos Python para ELIMINAR por completo a 'lime' y 'hxcpp' del hmm.json. 
-          # Así, hmm usará las versiones oficiales que acabamos de instalar y NO intentará descargar nada de Git.
+          # 1. Limpiamos hmm.json para usar las versiones oficiales estables
           python3 -c "
           import json
           with open('hmm.json', 'r') as f:
               data = json.load(f)
           if 'dependencies' in data:
-              data['dependencies'] = [
-                  d for d in data['dependencies'] 
-                  if d.get('name') not in ['hxcpp', 'lime']
-              ]
+              data['dependencies'] = [d for d in data['dependencies'] if d.get('name') not in ['hxcpp', 'lime']]
           with open('hmm.json', 'w') as f:
               json.dump(data, f, indent=2)
           "
           
-          # 3. Instalamos el resto de librerías del juego
-          haxelib run hmm install -q
+          # 2. Modificamos project.hxp para adaptarlo al Lime oficial (Comentamos las líneas problemáticas)
+          python3 -c "
+          with open('project.hxp', 'r') as f:
+              lines = f.readlines()
           
-          # 4. Compilar herramientas internas de hxcpp (este no da error de OpenAL)
-          cd .haxelib/hxcpp/git/tools/hxcpp && haxe compile.hxml || true
+          with open('project.hxp', 'w') as f:
+              for line in lines:
+                  # Si la línea tiene algo de lo que hace fallar a Lime, la comentamos con //
+                  if 'deliveryPackName' in line or 'adaptiveIcon' in line or 'xmlChildren' in line:
+                      f.write('// ' + line)
+                  else:
+                      f.write(line)
+          "
+          
+          # Instalamos el resto de librerías del juego
+          haxelib run hmm install -q
 
       - name: Configure Lime for Android
         run: |
@@ -94,4 +101,3 @@ jobs:
         with:
           name: build-android
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
-          
