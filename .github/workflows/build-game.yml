@@ -52,13 +52,18 @@ jobs:
         run: |
           haxelib install hmm --quiet
           haxelib install hxcpp --quiet
+          haxelib install lime --quiet
           
           python3 -c "
           import json
           with open('hmm.json', 'r') as f:
               data = json.load(f)
           if 'dependencies' in data:
-              data['dependencies'] = [d for d in data['dependencies'] if d.get('name') != 'hxcpp']
+              data['dependencies'] = [
+                  d for d in data['dependencies'] 
+                  if d.get('name') not in ['hxcpp', 'lime'] 
+                  and 'FunkinCrew' not in d.get('url', '')
+              ]
           with open('hmm.json', 'w') as f:
               json.dump(data, f, indent=2)
           "
