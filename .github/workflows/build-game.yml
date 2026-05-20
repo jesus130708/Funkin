@@ -51,37 +51,39 @@ jobs:
       - name: Install HMM and dependencies
         run: |
           haxelib install hmm --quiet
-          
-          # Instalamos las versiones oficiales estables de Lime y HXCPP
           haxelib install lime 8.2.2 --quiet
           haxelib install hxcpp --quiet
+          haxelib git jsonpatch https://github.com/ciscoheat/jsonpatch --quiet
+          haxelib git jsonpath https://github.com/bndr/haxe-jsonpath --quiet
           
-          # 1. Limpiamos hmm.json para usar las versiones oficiales estables
+          # 1. Limpiamos hmm.json de las librerías conflictivas
           python3 -c "
           import json
           with open('hmm.json', 'r') as f:
               data = json.load(f)
           if 'dependencies' in data:
-              data['dependencies'] = [d for d in data['dependencies'] if d.get('name') not in ['hxcpp', 'lime']]
+              data['dependencies'] = [
+                  d for d in data['dependencies'] 
+                  if d.get('name') not in ['hxcpp', 'lime', 'jsonpatch', 'jsonpath']
+              ]
           with open('hmm.json', 'w') as f:
               json.dump(data, f, indent=2)
           "
           
-          # 2. Modificamos project.hxp para adaptarlo al Lime oficial (Comentamos las líneas problemáticas)
+          # 2. Cirugía plástica en project.hxp: Reemplazamos los campos problemáticos por texto seguro en lugar de borrar líneas
           python3 -c "
           with open('project.hxp', 'r') as f:
-              lines = f.readlines()
+              code = f.read()
+          
+          # Cambiamos las variables de FunkinCrew por variables estándar vacías o genéricas
+          code = code.replace('.deliveryPackName', '.__deliveryPackName_disabled')
+          code = code.replace('adaptiveIcon', 'icon')
+          code = code.replace('.xmlChildren', '.__xmlChildren_disabled')
           
           with open('project.hxp', 'w') as f:
-              for line in lines:
-                  # Si la línea tiene algo de lo que hace fallar a Lime, la comentamos con //
-                  if 'deliveryPackName' in line or 'adaptiveIcon' in line or 'xmlChildren' in line:
-                      f.write('// ' + line)
-                  else:
-                      f.write(line)
+              f.write(code)
           "
           
-          # Instalamos el resto de librerías del juego
           haxelib run hmm install -q
 
       - name: Configure Lime for Android
@@ -101,3 +103,4 @@ jobs:
         with:
           name: build-android
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          
