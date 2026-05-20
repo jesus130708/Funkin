@@ -69,6 +69,10 @@ jobs:
           "
           
           haxelib run hmm install -q
+          
+          # Reconstruimos las herramientas de Lime para Linux
+          haxelib run lime rebuild linux -release
+          
           cd .haxelib/hxcpp/git/tools/hxcpp && haxe compile.hxml || true
 
       - name: Configure Lime for Android
