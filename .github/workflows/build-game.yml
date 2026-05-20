@@ -52,13 +52,13 @@ jobs:
         run: |
           haxelib install hmm --quiet
           
-          # Instalamos las versiones oficiales estables desde el servidor normal de Haxelib
+          # Instalamos las versiones oficiales estables globales
           haxelib install lime 8.2.2 --quiet
           haxelib install hxcpp --quiet
           haxelib install jsonpatch 1.1.0 --quiet
           haxelib install jsonpath 1.1.0 --quiet
           
-          # 1. Limpiamos hmm.json para usar las que ya instalamos arriba de forma global
+          # 1. Limpiamos hmm.json para usar las globales
           python3 -c "
           import json
           with open('hmm.json', 'r') as f:
@@ -72,17 +72,18 @@ jobs:
               json.dump(data, f, indent=2)
           "
           
-          # 2. Modificamos project.hxp sin romper corchetes
+          # 2. Cirugía quirúrgica en project.hxp: neutralizamos las líneas problemáticas de raíz sin alterar la estructura
           python3 -c "
           with open('project.hxp', 'r') as f:
-              code = f.read()
-          
-          code = code.replace('.deliveryPackName', '.__deliveryPackName_disabled')
-          code = code.replace('adaptiveIcon', 'icon')
-          code = code.replace('.xmlChildren', '.__xmlChildren_disabled')
+              lines = f.readlines()
           
           with open('project.hxp', 'w') as f:
-              f.write(code)
+              for line in lines:
+                  # Si la línea contiene los desencadenantes del error, la neutralizamos por completo
+                  if 'deliveryPackName' in line or 'adaptiveIcon' in line or 'xmlChildren' in line:
+                      f.write('// Línea removida para compatibilidad con Lime oficial\n')
+                  else:
+                      f.write(line)
           "
           
           haxelib run hmm install -q
@@ -90,7 +91,7 @@ jobs:
       - name: Configure Lime for Android
         run: |
           haxelib run lime config ANDROID_SDK $ANDROID_HOME
-          haxelib run lime config ANDANDROID_NDK $ANDROID_NDK_LATEST_HOME
+          haxelib run lime config ANDROID_NDK $ANDROID_NDK_LATEST_HOME
           haxelib run lime config JAVA_HOME $JAVA_HOME
 
       - name: Build game (Android)
